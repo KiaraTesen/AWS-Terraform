@@ -1,0 +1,30 @@
+group : lp-aws
+
+Console sign-in URL
+https://666235802221.signin.aws.amazon.com/console
+
+User name
+lp-aws-user
+
+Console password
+yQEG35(_
+
+
+## Pasos 
+
+1.- Configurar credenciales y región
+
+aws confgure
+
+2.- Crear bucker en caso que no exista
+
+aws s3api create-bucket --bucket lp-aws-vagrant-box --create-bucket-configuration LocationConstraint=us-west-2 ##HERMILO
+aws s3api create-bucket --bucket ligua-aws-vagrant-box --create-bucket-configuration LocationConstraint=us-west-2 
+
+3.- Subir archivos a la bucket
+aws s3 sync . s3://lp-aws-vagrant-box/csv/ --sse AES256
+
+4.- Descarga archivo
+aws s3api get-object --bucket  lp-aws-vagrant-box --key boxes/v_windows_10_base_05102023/v_windows_10_base_05102023.box v_windows_10_base_05102023.box
+
+

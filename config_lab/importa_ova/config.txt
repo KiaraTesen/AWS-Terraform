@@ -1,0 +1,119 @@
+### Importación de VM para crear instancias de EC2
+
+
+## Subir las ovas a un bucket
+
+## Crear bucket
+
+aws s3api create-bucket --bucket ligua-petorca-aws-images --create-bucket-configuration LocationConstraint=us-west-2
+
+##  Create an IAM role named "vmimport" with the trust policy trust-policy.json that allows the VM import service to assume the role.
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "vmie.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:Externalid": "vmimport"
+        }
+      }
+    }
+  ]
+}
+
+Run the next command in order to create the vmimport  role and specify the trust policy that you created using the create-role command.
+
+aws iam create-role \
+    --role-name vmimport \
+    --assume-role-policy-document "file://trust-policy.json"
+
+(aws iam create-role --role-name vmimport --assume-role-policy-document file://trust-policy.json)
+
+##  Attach the following IAM policy named "vmimport" to the IAM role to grant permissions.
+## Note: Replace disk-image-file-bucket with your S3 bucket name.
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketLocation",
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::disk-image-file-bucket",
+        "arn:aws:s3:::disk-image-file-bucket/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:ModifySnapshotAttribute",
+        "ec2:CopySnapshot",
+        "ec2:RegisterImage",
+        "ec2:Describe*"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+
+
+Attach the access policy to the role using the put-role-policy command.
+
+aws iam put-role-policy \
+    --role-name vmimport \
+    --policy-name vmimport \
+    --policy-document "file://role-policy.json"
+
+(aws iam put-role-policy --role-name vmimport --policy-name vmimport --policy-document file://role-policy.json)
+
+##  Upload the image to the S3 bucket with the tool of your choice.
+aws s3 cp storage-nfs.ova s3://ligua-petorca-aws-images  ## PARA ARCHIVOS MENORES A 5 Gb
+
+## After the vm image is uploaded to your S3 bucket, from the client machine, run the AWS CLI command to import-image to Amazon EC2.
+
+aws ec2 import-image --disk-containers Format=ova,UserBucket="{S3Bucket=ligua-petorca-aws-images,S3Key=storage-nfs.ova}"
+
+aws ec2 import-image --disk-containers Format=ova,UserBucket="{S3Bucket=ligua-aws-vagrant-box,S3Key=windows_10_Ligua.ova}"
+
+Output:
+
+{
+    "ImportTaskId": "import-ami-04edfc70bcb99feaa",
+    "Progress": "1",
+    "SnapshotDetails": [
+        {
+            "DiskImageSize": 0.0,
+            "Format": "OVA",
+            "UserBucket": {
+                "S3Bucket": "ligua-petorca-aws-images",
+                "S3Key": "storage-nfs.ova"
+            }
+        }
+    ],
+    "Status": "active",
+    "StatusMessage": "pending"
+}
+
+
+##  To check the import task status, run the AWS CLI command describe-import-image-tasks.
+aws ec2 describe-import-image-tasks \
+    --import-task-ids import-ami-04edfc70bcb99feaa
+
+(aws ec2 describe-import-image-tasks --import-task-ids import-ami-0a5d786f123029492)
+
+recursos:
+ 
+https://repost.aws/knowledge-center/import-server-ec2-instance
+https://www.youtube.com/watch?v=kbdMHZPZVEY
+https://www.youtube.com/watch?v=J6N9SgdGvXA
+
